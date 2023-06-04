@@ -18,7 +18,6 @@ interface UpdateUserModalProps {
 
 const UpdateUserModal: React.FC<UpdateUserModalProps> = ({open, handleClose, handleUpdateUser, selectedUser}) => {
     const [updatedUser, setUpdatedUser] = useState<Partial<User>>({});
-
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
         setUpdatedUser((prevUser) => ({
@@ -30,6 +29,7 @@ const UpdateUserModal: React.FC<UpdateUserModalProps> = ({open, handleClose, han
     const handleUpdate = () => {
         if (selectedUser) {
             handleUpdateUser(selectedUser._id, updatedUser);
+            setUpdatedUser({});
             handleClose();
         }
     };
@@ -44,6 +44,9 @@ const UpdateUserModal: React.FC<UpdateUserModalProps> = ({open, handleClose, han
                     value={updatedUser.username || (selectedUser?.username || '')}
                     onChange={handleChange}
                     fullWidth
+                    sx={{
+                        margin: 1
+                    }}
                 />
                 <TextField
                     name="email"
@@ -51,6 +54,9 @@ const UpdateUserModal: React.FC<UpdateUserModalProps> = ({open, handleClose, han
                     value={updatedUser.email || (selectedUser?.email || '')}
                     onChange={handleChange}
                     fullWidth
+                    sx={{
+                        margin: 1
+                    }}
                 />
                 {/* Add more form fields as needed */}
             </DialogContent>

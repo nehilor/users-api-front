@@ -1,13 +1,12 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useSelector, useDispatch } from "react-redux";
-import { selectToken, selectUsers, setUsers, setToken } from "../store/userSlice";
+import { selectUsers, setUsers, setToken } from "../store/userSlice";
 import {
     getUsers,
     createUser,
     updateUser,
     deleteUser,
 } from "../services/userService";
-import { UUID } from "crypto";
 import { User } from "../interfaces/interfaces";
 import { useNavigate } from "react-router-dom";
 import {
@@ -28,13 +27,12 @@ import { Delete, Edit } from "@mui/icons-material";
 import Box from "@mui/material/Box";
 import Container from "@mui/material/Container";
 import UpdateUserModal from './UpdateUserModal';
+import {getLocalToken, removeLocalToken} from "../services/sessionService";
 const Users = () => {
     const navigate = useNavigate();
     const dispatch = useDispatch();
-    const token = useSelector(selectToken);
     const users = useSelector(selectUsers);
     const [openDeleteModal, setOpenDeleteModal] = useState(false);
-    const [updatedUser, setUpdatedUser] = useState({});
     const [openUpdateModal, setOpenUpdateModal] = useState(false);
     const [selectedUser, setSelectedUser] = useState<User | null>(null);
     const [openCreateModal, setOpenCreateModal] = useState(false);
@@ -50,25 +48,26 @@ const Users = () => {
         setOpenUpdateModal(false);
     };
 
-    useEffect(() => {
-        fetchUsers();
-    }, [dispatch])
-
-    useEffect(() => {
-        // Check if the user is logged in
-        if (!token) {
-            navigate("/login");
-        }
-    }, [token, navigate]);
-
-    const fetchUsers = async () => {
+    const fetchUsers = useCallback(async () => {
         try {
             const usersData = await getUsers();
             dispatch(setUsers(usersData));
         } catch (error) {
             console.error(error);
         }
-    };
+    }, [dispatch]);
+
+    useEffect(() => {
+        fetchUsers();
+    }, [fetchUsers]);
+
+    useEffect(() => {
+        const token = getLocalToken();
+        // Check if the user is logged in
+        if (!token) {
+            navigate("/login");
+        }
+    }, [navigate]);
 
     const handleOpenCreateModal = () => {
         setOpenCreateModal(true);
@@ -82,7 +81,7 @@ const Users = () => {
         try {
             await createUser(newUser);
             // Refresh users list after successful creation
-            fetchUsers();
+            await fetchUsers();
             // Reset the new user form fields
             setNewUser({ _id: '', username: '', email: '', password: '' });
             // Close the create modal
@@ -95,14 +94,13 @@ const Users = () => {
 
     const handleUpdateUser = async (id: string, updatedUser: Partial<User>) => {
         try {
-            updateUser(id, updatedUser);
-            fetchUsers();
+            await updateUser(id, updatedUser);
+            await fetchUsers();
+            handleCloseUpdateModal();
         } catch (error) {
             console.error(error);
         }
     };
-
-
     const handleDeleteUser = async () => {
         try {
             const userId: string = selectedUser?._id || '';
@@ -119,6 +117,8 @@ const Users = () => {
 
     const handleLogout = () => {
         dispatch(setToken('')); // Clear token in Redux store
+        removeLocalToken();
+        navigate("/login");
     };
     const handleOpenUpdateModal = (user: User) => {
         setSelectedUser(user);
@@ -154,10 +154,10 @@ const Users = () => {
                     alignItems: "center",
                 }}
             >
-                <Button variant="outlined" sx={{ padding: 1 }} onClick={handleOpenCreateModal}>
+                <Button variant="outlined" sx={{ margin: 1 }} onClick={handleOpenCreateModal}>
                     Create User
                 </Button>
-                <Button variant="outlined" sx={{ padding: 1 }} onClick={handleLogout}>
+                <Button variant="outlined" sx={{ margin: 1 }} onClick={handleLogout}>
                     Logout
                 </Button>
             </Box>
